@@ -1,0 +1,40 @@
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg*
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# pycharm
+.idea
+
+# Installer logs
+pip-log.txt
+
+.venv
+venv
+
+# Visual Studio Code
+.vscode/
+
+# Editors
+*~
+.*.swp
+.*sw?
+
+.pytest_cache/
+.mypy_cache/
+
