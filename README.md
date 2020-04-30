@@ -3,44 +3,53 @@ Simple Python script to create and update indexers from Jackett in Radarr, Sonar
 
 * [Source Project](https://github.com/Guilhem23/Jackett_Indexerr)
 
+## Usage
+
+- Install virtual environnement
+```bash
+make pipenv-install
+```
+- Run script
+```bash
+make run
+```
+
 ## Configuration
 
-- Complete these values with your own
+***Run script once to create initial config.ini file***
+
+Complete config.ini with your own (remove unneeded apps if needed)
 
 ```python
-jackett_apikey = "foo"
-jackett_url = "https://localhost/jackett"
-indexer_prefix = "AUTO: "
+[default]
+jackett_apikey = foo
+jackett_url = https://localhost/jackett
+indexer_prefix = AUTO: 
+
+[sonarr]
+apikey = foo
+url = https://localhost/sonarr/api/
+categoryprefixes = ['TV']
+animecategoryprefixes = ['Anime', 'TV']
+
+[radarr]
+apikey = foo
+url = https://localhost/radarr/api/
+categoryprefixes = ['Movies']
+animecategoryprefixes = ['Anime', 'Movies']
+
+[lidarr]
+apikey = foo
+url = https://localhost/lidarr/api/v1/
+categoryprefixes = ['Audio']
+
 ```
 
-- Add or remove application as needed and complete with your own values
+## Extra
 
-```python
-targets = [
-    {
-        "name": "sonarr",
-        "apikey": "foo",
-        "url" : "https://localhost/sonarr/api/",
-        "categoryPrefixes": ["TV"],
-        "animeCategoryPrefixes": ["Anime","TV"],
-    },
-    {
-        "name": "radarr",
-        "apikey": "foo",
-        "url" : "https://localhost/radarr/api/",
-        "categoryPrefixes": ["Movies"],
-        "animeCategoryPrefixes": ["Anime","Movies"],
-    },
-    {
-        "name": "lidarr",
-        "apikey": "foo",
-        "url" : "https://localhost/lidarr/api/v1/",
-        "categoryPrefixes": ["Audio"]
-    },
-]
-```
+Overriding category for an indexer: edit add_indexer.py and add your own overrides if needed
 
-- Overriding category for an indexer: Add your own overrides if needed
+TODO: move this expert config to config.ini
 
 ```python
 categories_override = {
@@ -54,16 +63,12 @@ categories_override = {
      }
 }
 ```
+## TODO
 
-## Usage
+- Move override to config file
+- Update indexer with new values instead of always removing
 
-```bash
-make pipenv-install
-
-make run
-```
-
-## Greatings
+## Greetings
 
 Started from code snippet provided by ninnghazad in Jackett Issue
 

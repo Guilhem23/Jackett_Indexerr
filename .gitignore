@@ -1,5 +1,7 @@
 *.py[cod]
 
+config.ini
+*.code-workspace
 # C extensions
 *.so
 
