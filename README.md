@@ -66,7 +66,7 @@ categories_override = {
 ## TODO
 
 - Move override to config file
-- Update indexer with new values instead of always removing
+- Add indexer blacklist in config to avoid adding indexer without music to lidarr for example
 
 ## Greetings
 
