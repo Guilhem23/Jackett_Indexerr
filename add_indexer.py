@@ -97,7 +97,11 @@ def add_indexers(app):
                     print("Categories Override: ", categories)
                 except:
                     for p in config[app]['categoryPrefixes']:
-                        for c in idxr['caps']['categories']['category']:
+                        if type(idxr['caps']['categories']['category']) is list:
+                            catPrefix = idxr['caps']['categories']['category']
+                        else:
+                            catPrefix = [idxr['caps']['categories']['category']]
+                        for c in catPrefix:
                             if c['@name'].startswith(p):
                                 categories.append(int(c['@id']))
                 
@@ -113,7 +117,11 @@ def add_indexers(app):
                     print("Anime Categories Override: ", anime_categories)
                 except:
                     for p in config[app]['animeCategoryPrefixes']:
-                        for c in idxr['caps']['categories']['category']:
+                        if type(idxr['caps']['categories']['category']) is list:
+                            catPrefix = idxr['caps']['categories']['category']
+                        else:
+                            catPrefix = [idxr['caps']['categories']['category']]
+                        for c in catPrefix:
                             if c['@name'].startswith(p):
                                 anime_categories.append(int(c['@id']))
 
