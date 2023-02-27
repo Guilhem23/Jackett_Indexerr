@@ -21,7 +21,7 @@ pipenv-to-requirements==0.9.0
 pipenv==2018.11.26
 requests==2.23.0
 six==1.14.0
-urllib3==1.25.9
+urllib3==1.26.5
 virtualenv-clone==0.5.4
 virtualenv==20.0.18
 xmltodict==0.12.0
