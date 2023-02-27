@@ -5,8 +5,9 @@
 #    pipenv lock --requirements
 #
 
--i https://pypi.org/simple/
-certifi==2021.10.8
+
+appdirs==1.4.3
+certifi==2022.12.7
 chardet==3.0.4
 distlib==0.3.4
 filelock==3.4.2; python_version >= '3.7'
