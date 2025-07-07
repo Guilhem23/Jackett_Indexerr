@@ -100,7 +100,7 @@ Complete config.json with your own (remove unneeded apps if needed)
 
 Started from code snippet provided by ninnghazad in Jackett Issue
 
-Thanks to ninnghazad for saving me a copple of hours ;)
+Thanks to ninnghazad for saving me a couple of hours ;)
 
 https://github.com/ninnghazad
 
