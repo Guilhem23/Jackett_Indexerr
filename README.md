@@ -89,13 +89,12 @@ Complete config.json with your own (remove unneeded apps if needed)
 ```
 
 ## Extra
--- 
--- Added ***verbose*** to print all messages if true
--- Added ***api_path*** and ***indexer_path***, if your app version differs one from another
--- Included ***type*** on config to skip indexers which caps.searching.[type] is not available
--- Removed replacing fields from an existing indexers, instead if replaceExistent is true delete the indexer and add it again
--- Created method to add priority to an indexer using tags [critical - 1; higher - 10; lower - 40; minimal - 50], if not set defaut is 25
--- Created method to skip if tags contains disabled, or last_error is not empty
+- Added ***verbose*** to print all messages if true
+- Added ***api_path*** and ***indexer_path***, if your app version differs one from another
+- Included ***type*** on config to skip indexers which caps.searching.[type] is not available
+- Removed replacing fields from an existing indexers, instead if replaceExistent is true delete the indexer and add it again
+- Created method to add priority to an indexer using tags [critical - 1; higher - 10; lower - 40; minimal - 50], if not set defaut is 25
+- Created method to skip if indexer tags contains disabled, or last_error is not empty
 
 ## Greetings
 
