@@ -18,61 +18,89 @@ make run
 
 ***Run script once to create initial config.ini file***
 
-Complete config.ini with your own (remove unneeded apps if needed)
+Complete config.json with your own (remove unneeded apps if needed)
 
-```python
-[default]
-jackett_apikey = foo
-jackett_url = https://localhost/jackett
-indexer_prefix = AUTO: 
-
-[sonarr]
-apikey = foo
-url = https://localhost/sonarr/api/
-categoryprefixes = ['TV']
-animecategoryprefixes = ['Anime', 'TV']
-
-[radarr]
-apikey = foo
-url = https://localhost/radarr/api/
-categoryprefixes = ['Movies']
-animecategoryprefixes = ['Anime', 'Movies']
-
-[lidarr]
-apikey = foo
-url = https://localhost/lidarr/api/v1/
-categoryprefixes = ['Audio']
-
+```json
+{
+    "default": {
+        "jackett_apikey": "foo",
+        "jackett_url": "https://localhost/jackett",
+        "indexer_prefix": "AUTO: ",
+        "verbose": false
+    },
+    "sonarr": {
+        "active": true,
+        "apikey": "foo",
+        "url": "https://localhost/sonarr/api/",
+        "categoryPrefixes": [
+            "TV"
+        ],
+        "animeCategoryPrefixes": [
+            "Anime",
+            "TV"
+        ],
+        "api_path": "api/v3/",
+        "indexer_path": "indexer",
+        "type": "tv-search",
+        "replaceExistent": false,
+        "categories_override": {}
+    },
+    "radarr": {
+        "active": true,
+        "apikey": "foo",
+        "url": "https://localhost/radarr/api/",
+        "categoryPrefixes": [
+            "Movies"
+        ],
+        "animeCategoryPrefixes": [
+            "Anime",
+            "Movies"
+        ],
+        "api_path": "api/v3/",
+        "indexer_path": "indexer",
+        "type": "tv-search",
+        "replaceExistent": false,
+        "categories_override": {
+            "my_favorite_tracker": {
+                "categories": [2000],
+                "anime_categories": [5000]
+            }
+        }
+    },
+    "lidarr": {
+        "active": false,
+        "apikey": "foo",
+        "url": "https://localhost/lidarr/api/v1/",
+        "categoryPrefixes": [
+            "Audio"
+        ],
+        "api_path": "api/v3/",
+        "indexer_path": "indexer",
+        "type": "audio-search",
+        "replaceExistent": false,
+        "categories_override": {
+            "my_favorite_tracker": {
+                "categories": [2000],
+                "anime_categories": [5000]
+            }
+        }
+	}
+}
 ```
 
 ## Extra
-
-Overriding category for an indexer: edit add_indexer.py and add your own overrides if needed
-
-TODO: move this expert config to config.ini
-
-```python
-categories_override = {
-    "cpasbienclone" : {
-        "categories" : "7000",
-        "anime_categories" : "7000"
-    },
-     "my_favorite_tracker" : {
-         "categories" : "2000",
-         "anime_categories" : "5000"
-     }
-}
-```
-## TODO
-
-- Move override to config file
-- Add indexer blacklist in config to avoid adding indexer without music to lidarr for example
+- Added ***verbose*** to print all messages if true
+- Added ***api_path*** and ***indexer_path***, if your app version differs one from another
+- Included ***type*** on config to skip indexers which caps.searching.[type] is not available
+- Removed replacing fields from an existing indexers, instead if replaceExistent is true delete the indexer and add it again
+- Created method to add priority to an indexer using tags [critical - 1; higher - 10; lower - 40; minimal - 50], if not set defaut is 25
+- Created method to skip if indexer tags contains disabled, or last_error is not empty
 
 ## Greetings
 
 Started from code snippet provided by ninnghazad in Jackett Issue
 
-Thanks to ninnghazad for saving me a copple of hours ;)
+Thanks to ninnghazad for saving me a couple of hours ;)
 
 https://github.com/ninnghazad
 

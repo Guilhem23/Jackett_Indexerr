@@ -1,5 +1,6 @@
 *.py[cod]
 
+config.json
 config.ini
 *.code-workspace
 # C extensions
@@ -39,4 +40,4 @@ venv
 
 .pytest_cache/
 .mypy_cache/
-
+__pycache__/
