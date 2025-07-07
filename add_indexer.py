@@ -1,164 +1,240 @@
-# Advanced usage not yet in config file ...
-# Overriding category for an indexer
-categories_override = {
-    "cpasbienclone" : {
-        "categories" : "7000",
-        "anime_categories" : "7000"
-    },
-     "my_favorite_tracker" : {
-         "categories" : "2000",
-         "anime_categories" : "5000"
-     }
-}
-
 # Do not edit under this line
 
-import urllib
-import urllib.request as request
 import json
 import requests
 import xmltodict
 from config import config
 
-jackett_baseurl = config['default']['jackett_url'] + "/api/v2.0/indexers/"
-jackett_indexers_url =  jackett_baseurl + "all/results/torznab/api?apikey=" + \
+jackett_base_url = config['default']['jackett_url'] + "/api/v2.0/indexers"
+jackett_torznabs_url =  jackett_base_url + "/all/results/torznab/api?apikey=" + \
                         config['default']['jackett_apikey'] + "&t=indexers&configured=true"
+jackett_indexers_url =  jackett_base_url + "?apikey=" + config['default']['jackett_apikey'] + "&t=indexers&configured=true"                        
 
-app_indexers_url = "indexer"
-app_schema_url  = app_indexers_url + "/schema"
 verbose = False
 
-class MyHTTPRedirectHandler(request.HTTPRedirectHandler):
-    def http_error_302(self, req, fp, code, msg, headers):
-        return request.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
-    http_error_301 = http_error_303 = http_error_307 = http_error_302
+def print_encoded(text):
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # Converter caracteres problemáticos
+        safe_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(safe_text)
 
-def get_jsomparsed_data_from_xml(url):
-    response = request.urlopen(url)
-    data = response.read().decode("utf-8")
+def get_jackett_session(pwd):
+    session = requests.Session()
+    login_data = {'password': pwd}
+    login_response = session.post(
+        f"{config['default']['jackett_url']}/UI/Dashboard",
+        data=login_data,
+        allow_redirects=True
+    )
+    if login_response.status_code == 200:
+        return session
+    else:
+        print_encoded(f"[{login_response.status_code}] Login error to Jackett")
+        return None
+
+def get_jsonparsed_data_from_xml(url, headers, session=None):
+    if (session==None):
+        response = requests.get(url, headers)
+    else:
+        response = session.get(url)
+    response.encoding = "utf-8"
+    data = response.text
     my_dict=xmltodict.parse(data)
     return json.loads(json.dumps(my_dict))
 
-def get_jsomparsed_data(url):
-    response = request.urlopen(url)
-    data = response.read().decode("utf-8")
+def get_jsonparsed_data(url, headers, session=None):
+    if session==None:
+        response = requests.get(url, headers)
+    else:
+        response = session.get(url)
+    response.encoding = "utf-8"
+    data = response.text
     return json.loads(data)
 
-
-cookieprocessor = request.HTTPCookieProcessor()
-opener = request.build_opener(MyHTTPRedirectHandler, cookieprocessor)
-request.install_opener(opener)
-
-all_indexers = get_jsomparsed_data_from_xml(jackett_indexers_url)
-indexers = [x for x in all_indexers['indexers']['indexer']]
-
-print(str(len(indexers)) + " indexers availlable in Jackett ")
+def print_line():
+    print("--------------------------------------------------------------------------------")
 
 def add_indexers(app):
-    app_schemas = get_jsomparsed_data(config[app]['url'] + app_schema_url + "?apikey="+config[app]['apikey'])
-    app_indexers = get_jsomparsed_data(config[app]['url'] + app_indexers_url + "?apikey="+config[app]['apikey'])
-
+    searchType = config[app]['type']
+    replaceExistent = config[app]['replaceExistent']
+    print_encoded('Processing: ' + app) 
+    app_indexers_url = config[app]['url'] + config[app]['api_path'] + config[app]['indexer_path']
+    app_schema_url  = app_indexers_url + "/schema"
+    appkey_query = "?apikey=" + config[app]['apikey']
+    
+    print_encoded('Getting schema...')
+    if verbose:
+        print_encoded(app_schema_url + appkey_query)
+    app_schemas = get_jsonparsed_data(app_schema_url + appkey_query, {})
+    
+    print_encoded('Getting current indexers...')
+    if verbose:
+        print_encoded(app_indexers_url + appkey_query)
+    app_indexers = get_jsonparsed_data(app_indexers_url + appkey_query, {})
+    
     for schema in app_schemas:
         if schema['implementation'] == "Torznab":
             del schema['presets']
             if verbose:
-                print("Using Json template:")
-                print(json.dumps(schema, sort_keys=True, indent=4, separators=(',', ': ')))
+                print_encoded("Using Json template:")
+                print_encoded(json.dumps(schema))
             break
-
-    for idxr in indexers:
-        #Does indexer exist ?
-        exist = 0
-        changed = True
-
-        for app_idxr in app_indexers:
-            if idxr['@id'] in app_idxr['name']:
-                exist = app_idxr['id']
-                changed = False
+    i = 0
+    for tznb in torznabs:
+        disabled = False
+        onError = False
+        priority = 25
+        for idxr in indexers:
+            if tznb['@id'] == idxr['id']:
+                if (idxr['last_error'] != ""):
+                    onError = True
+                    break
+                if ('disabled' in idxr['tags']):
+                    disabled = True
+                    break
+                if 'critical' in idxr['tags']:
+                    priority = 1
+                elif 'higher' in idxr['tags']:
+                    priority = 10
+                elif 'lower' in idxr['tags']:
+                    priority = 40
+                elif 'minimal' in idxr['tags']:
+                    priority = 50
                 break
-
-        schema['name'] = config['default']['indexer_prefix'] + " " + idxr['@id']
-        for k in schema:
-            if "Search" in k or "Rss" in k:
-                schema[k]= 'true'
-                if exist != 0 and app_idxr[k] != True:
-                    changed = True
-                    print(app_idxr['name'], " ", k, " ", app_idxr[k])
-
-        for section in schema['fields']:
-            if section['name'].lower() == "apikey":
-                section['value'] = config['default']['jackett_apikey']
-            if section['name'].lower() == "baseurl":
-                section['value'] = jackett_baseurl + idxr['@id'] + "/results/torznab/"
-            if section['name'].lower() == "categories":
-                categories = []
-                try:
-                    categories.append(int(categories_override[idxr['@id']]['categories']))
-                    print("Categories Override: ", categories)
-                except:
-                    for p in config[app]['categoryPrefixes']:
-                        if type(idxr['caps']['categories']['category']) is list:
-                            catPrefix = idxr['caps']['categories']['category']
-                        else:
-                            catPrefix = [idxr['caps']['categories']['category']]
-                        for c in catPrefix:
-                            if c['@name'].startswith(p):
-                                categories.append(int(c['@id']))
-                
-                if len(categories) == 0:
-                    print("No Categories found using default...")
-                else:
-                    section['value'] = categories
-
-            if section['name'].lower() == "animecategories":
-                anime_categories = []
-                try:
-                    anime_categories.append(int(categories_override[idxr['@id']]['anime_categories']))
-                    print("Anime Categories Override: ", anime_categories)
-                except:
-                    for p in config[app]['animeCategoryPrefixes']:
-                        if type(idxr['caps']['categories']['category']) is list:
-                            catPrefix = idxr['caps']['categories']['category']
-                        else:
-                            catPrefix = [idxr['caps']['categories']['category']]
-                        for c in catPrefix:
-                            if c['@name'].startswith(p):
-                                anime_categories.append(int(c['@id']))
-
-                if len(anime_categories) == 0:
-                    print("No Anime Categories found using default...")
-                else:
-                    section['value'] = anime_categories
-            try:
-                if exist != 0 and app_idxr['fields'][schema['fields'].index(section)]['value'] != section['value']:
-                    changed = True
-                    print("Value changed ", section['name'], " ", section['value'], " ", app_idxr['fields'][schema['fields'].index(section)]['value'])
-            except:
-                if verbose:
-                    print("No key Value!! in ", section['name'])
-            if verbose:
-                print(section)
-
+        if disabled:
+            print(f"{idxr['id']} disabled, skipping...")
+            print()
+            continue
+        if onError:
+            print(f"{idxr['id']} on error, skipping...")
+            print()
+            continue    
+        schema['priority'] = priority
+        print_encoded(f"Trying to add: {tznb['@id']} to {app} with priority set to {priority}")
+        
         if verbose:
-            print(json.dumps(schema, sort_keys=True, indent=4))
-        if exist != 0 and changed is not False:
-            print(app_idxr['name'], " already present, removing!")
-            r = requests.delete(config[app]['url'] + app_indexers_url + "/" + str(app_idxr['id']) + "?apikey=" + config[app]['apikey'])
+            print_encoded(tznb['@id'] + ': ' + json.dumps(tznb))
+             
+        if tznb['caps']['searching'][searchType]['@available'].lower() == "yes":
+            #Does indexer exist ?
+            exist = 0
+            for app_tznb in app_indexers:
+                if tznb['@id'] in app_tznb['name']:
+                    exist = app_tznb['id']
+                    break
+            if exist == 0 or (exist != 0 and replaceExistent):
+                schema['name'] = f"{priority} - {tznb['@id']}"
+                for k in schema:
+                    if k.lower().endswith("rss") or k.lower().endswith("search"):
+                        schema[k]= True
+
+                for section in schema['fields']:
+                    sectionName = section['name'].lower()
+                    if sectionName == "apikey":
+                        section['value'] = config['default']['jackett_apikey']
+                    if sectionName == "baseurl":
+                        section['value'] = jackett_base_url + "/" + tznb['@id'] + "/results/torznab/"
+                    if sectionName == "categories":
+                        categories = []
+                        try:
+                            for c in config['app'][tznb['@id']]['categories']:
+                                categories.append(int(c))
+                            print_encoded("Categories Overrided to: ", categories)
+                        except:
+                            for p in config[app]['categoryPrefixes']:
+                                if type(tznb['caps']['categories']['category']) is list:
+                                    catPrefix = tznb['caps']['categories']['category']
+                                else:
+                                    catPrefix = [tznb['caps']['categories']['category']]
+                                for c in catPrefix:
+                                    if c['@name'].startswith(p):
+                                        categories.append(int(c['@id']))
+                        
+                        if len(categories) == 0:
+                            print_encoded("No Categories found using default...")
+                        else:
+                            section['value'] = categories
+
+                    if sectionName == "animecategories":
+                        anime_categories = []
+                        try:
+                            for c in categories_override[tznb['@id']]['anime_categories']:
+                                anime_categories.append(int(c))
+                            print_encoded("Anime Categories Override: " + anime_categories)
+                        except:
+                            for p in config[app]['animeCategoryPrefixes']:
+                                if type(tznb['caps']['categories']['category']) is list:
+                                    catPrefix = tznb['caps']['categories']['category']
+                                else:
+                                    catPrefix = [tznb['caps']['categories']['category']]
+                                for c in catPrefix:
+                                    if c['@name'].startswith(p):
+                                        anime_categories.append(int(c['@id']))
+
+                        if len(anime_categories) > 0:
+                            section['value'] = anime_categories
+                        else:
+                            print_encoded("No Anime Categories found using default...")
+                            
+                if exist != 0 and replaceExistent:
+                    print_encoded(app_tznb['name'] + " already present, removing...")
+                    url_del = app_indexers_url + "/" + str(app_tznb['id']) + appkey_query
+                    r = requests.delete(url_del)
+                    if r.status_code != 200:
+                        print(f"[{str(r.status_code)}] Error on removing {str(app_tznb['id'])}")
+                    else:
+                        exist = 0
+                    if verbose:
+                        print_encoded(f"[{str(r.status_code)}] DEL {url_del}")
+                        if r.status_code != 200:
+                            print_encoded(f"response: {json.dumps(r.json())}")
+               
+                url_add = app_indexers_url + appkey_query
+                r = requests.post(url_add, json=schema)
+                if r.status_code == 201:
+                    print_encoded(f"[{str(r.status_code)}] Added: {tznb['@id']}")
+                else:
+                    print_encoded(f"[{str(r.status_code)}] Error: {tznb['@id']}")
+                if verbose:
+                    print_encoded("POST " + url_add)
+                    print_encoded(f"request: {json.dumps(schema)}")
+                    print_encoded(f"response: {json.dumps(r.json())}")
+            else:
+                print_encoded(app_tznb['name'] + " already present, skipping...")
+        else:
             if verbose:
-                print(config[app]['url'] + app_indexers_url + "/" + str(app_idxr['id']) + "?apikey=" + config[app]['apikey'])
-                print("[" + str(r.status_code) + "]")
-                print(json.dumps(r.json(), indent=4, sort_keys=True))
+                print(tznb['caps']['searching'])
+            print_encoded(f"{tznb['@id']}: not for {searchType}, skipping...")
+        print()
 
+verbose = config['default']['verbose']
+print("Started...")
+if verbose:
+    print_encoded(jackett_torznabs_url)    
+all_torznabs = get_jsonparsed_data_from_xml(jackett_torznabs_url, {})
+torznabs = [x for x in all_torznabs['indexers']['indexer']]
+if verbose:
+    print_encoded(json.dumps(torznabs)) 
 
-        if changed is not False:
-            print("Trying to add: " + idxr['@id'] + " to " + app)
-            r = requests.post(config[app]['url'] + app_indexers_url + "?apikey=" + config[app]['apikey'], json=schema)
+if verbose:
+    print_encoded(jackett_indexers_url)
+session = None
+if config['default']['jackett_pwd'] != "":
+    session = get_jackett_session(config['default']['jackett_pwd'])
+indexers = get_jsonparsed_data(jackett_indexers_url, {'X-Api-Key': config['default']['jackett_apikey']}, session)
+if verbose:
+    print_encoded(json.dumps(indexers))
 
-            print("Finished: " + idxr['@id'] + " [" + str(r.status_code) + "]")
-            if r.status_code != 201:
-                print(json.dumps(r.json(), indent=4, sort_keys=True))
-
-
-for app in config.sections():
+print_encoded(str(len(torznabs)) + " indexers availlable in Jackett")
+print_line()
+           
+for app in config:
     if app != "default":
-        add_indexers(app)
+        if config[app]['active']:
+            add_indexers(app)
+        else:
+            print(f"{app} is not active, skipping...")
+        print_line()
+print("Finished...")
