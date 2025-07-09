@@ -4,7 +4,9 @@ Simple Python script to create and update indexers from Jackett in Radarr, Sonar
 * [Source Project](https://github.com/Guilhem23/Jackett_Indexerr)
 
 ## Usage
+Follow this https://packaging.python.org/en/latest/tutorials/installing-packages/
 
+***Linux***
 - Install virtual environnement
 ```bash
 make pipenv-install
@@ -14,9 +16,20 @@ make pipenv-install
 make run
 ```
 
+***Windows***
+```bash
+pipenv
+```
+```bash
+pip install requests
+```
+
 ## Configuration
 
-***Run script once to create initial config.ini file***
+***Run script once to create initial config.json file***
+```bash
+python add_indexers.py
+```
 
 Complete config.json with your own (remove unneeded apps if needed)
 
